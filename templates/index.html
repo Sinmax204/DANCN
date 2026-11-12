@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>LAN Guard Enterprise - GOD MODE</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+body{background:#f3f6fb;color:#111827}
+.layout{display:flex;min-height:100vh}
+
+.sidebar{
+width:260px;background:#081225;color:white;padding:25px;
+position:fixed;top:0;left:0;bottom:0
+}
+.sidebar h2{font-size:28px;margin-bottom:25px}
+.sidebar a{
+display:block;color:white;text-decoration:none;
+background:#13213a;padding:14px;border-radius:12px;
+margin-bottom:12px;font-weight:bold
+}
+.sidebar a:hover{background:#1d4ed8}
+
+.main{margin-left:260px;flex:1;padding:30px}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:25px}
+.topbar h1{font-size:38px}
+.topbar p{margin-top:5px}
+
+.btn{border:none;padding:12px 20px;border-radius:10px;cursor:pointer;font-weight:bold}
+.btn-primary{background:#1677ff;color:white}
+.btn-danger{background:#dc2626;color:white}
+.btn-dark{background:#081225;color:white}
+
+.status-row{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+.status-pill{padding:8px 12px;border-radius:20px;font-weight:bold;font-size:14px}
+.online{background:#dcfce7;color:#15803d}
+.scan{background:#dbeafe;color:#1d4ed8}
+.threat{background:#fee2e2;color:#dc2626}
+
+.alert{
+background:linear-gradient(135deg,#fff1f2,#ffe4e6);
+border-left:6px solid #dc2626;
+color:#7f1d1d;
+padding:16px;border-radius:14px;
+margin-bottom:25px;font-weight:bold;
+display:flex;gap:10px;align-items:center
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(5,1fr);
+gap:18px;
+margin-bottom:25px
+}
+.card{
+background:white;
+padding:22px;
+border-radius:16px;
+box-shadow:0 4px 14px rgba(0,0,0,.08)
+}
+.card h3{font-size:16px;color:#555;margin-bottom:10px}
+.card p{font-size:36px;font-weight:bold}
+.chart-card{
+background:white;padding:18px;border-radius:16px;
+box-shadow:0 4px 14px rgba(0,0,0,.08);
+text-align:center
+}
+
+.section{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+.table-box,.log-box,.map-box,.ids-box{
+background:white;border-radius:16px;
+overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.08)
+}
+
+table{width:100%;border-collapse:collapse}
+th{background:#081225;color:white;padding:15px;text-align:left}
+td{padding:14px;border-top:1px solid #eee}
+
+.badge{padding:7px 13px;border-radius:20px;font-size:12px;font-weight:bold}
+.green{background:#dcfce7;color:#15803d}
+.red{background:#fee2e2;color:#dc2626}
+.yellow{background:#fef3c7;color:#b45309}
+
+.small-btn{
+padding:7px 10px;border:none;border-radius:8px;
+color:white;cursor:pointer;font-weight:bold;margin:2px
+}
+.trust{background:#16a34a}
+.block{background:#dc2626}
+.unblock{background:#f97316}
+
+.log-box{padding:18px}
+.log-item{border-bottom:1px solid #eee;padding:10px 0;font-size:14px}
+
+.map-box{margin-top:25px;padding:20px}
+.ids-box{margin-top:25px;padding:20px}
+.ids-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:15px}
+.ids-card{padding:15px;border-radius:14px;background:#f8fafc;border:1px solid #e5e7eb}
+.ids-card b{display:block;margin-bottom:8px}
+</style>
+</head>
+
+<body>
+
+<div class="layout">
+
+<div class="sidebar">
+<h2>LAN Guard</h2>
+<a href="/">Dashboard</a>
+<a href="/trusted">Thiết bị tin cậy</a>
+<a href="/blacklist">Blacklist</a>
+<a href="/history">Lịch sử quét</a>
+<a href="/activity">Nhật ký hoạt động</a>
+<a href="/export">Xuất CSV</a>
+<a href="/export_pdf" target="_blank">Xuất Report</a>
+<a href="/logout">Đăng xuất</a>
+</div>
+
+<div class="main">
+
+<div class="topbar">
+<div>
+<h1>LAN Guard Enterprise</h1>
+<p>Xin chào {{ username }} - Hệ thống giám sát thiết bị trái phép trong mạng LAN</p>
+
+<div class="status-row">
+<span class="status-pill online">● System Online</span>
+<span class="status-pill scan">● Auto Scan: 60s</span>
+<span class="status-pill threat">● Threat Monitor Active</span>
+</div>
+</div>
+
+<div style="display:flex;gap:10px">
+<form method="POST" action="/scan">
+<button class="btn btn-primary" type="submit">Quét mạng</button>
+</form>
+
+<form method="POST" action="/simulate_attack">
+<button class="btn btn-danger" type="submit">🚨 Simulate Attack</button>
+</form>
+</div>
+</div>
+
+{% if unknown > 0 %}
+<div class="alert">
+🚨 <b>CẢNH BÁO:</b> Phát hiện {{ unknown }} thiết bị lạ trong mạng LAN. Vui lòng xử lý ngay!
+</div>
+{% endif %}
+
+<div class="cards">
+<div class="card"><h3>Tổng thiết bị</h3><p>{{ total }}</p></div>
+<div class="card"><h3>Đã biết</h3><p>{{ known }}</p></div>
+<div class="card"><h3>Chưa xác thực</h3><p>{{ unknown }}</p></div>
+<div class="card"><h3>Rủi ro cao</h3><p>{{ high }}</p></div>
+
+<div class="chart-card">
+<h3>Tỷ lệ thiết bị</h3>
+<canvas id="chart1" width="110" height="110"></canvas>
+</div>
+</div>
+
+<div class="section">
+
+<div class="table-box">
+<table>
+<tr>
+<th>IP</th>
+<th>MAC</th>
+<th>Vendor</th>
+<th>Status</th>
+<th>Risk</th>
+<th>Level</th>
+<th>Last Seen</th>
+<th>Action</th>
+</tr>
+
+{% for d in devices %}
+<tr>
+<td>{{ d.ip }}</td>
+<td>{{ d.mac }}</td>
+<td>{{ d.vendor }}</td>
+
+<td>
+{% if d.status == "Known" %}
+<span class="badge green">Known</span>
+{% elif d.status == "Blocked" %}
+<span class="badge red">Blocked</span>
+{% else %}
+<span class="badge red">Unknown</span>
+{% endif %}
+</td>
+
+<td>{{ d.risk_score }}</td>
+
+<td>
+{% if d.risk_level == "High" %}
+<span class="badge red">High</span>
+{% elif d.risk_level == "Medium" %}
+<span class="badge yellow">Medium</span>
+{% else %}
+<span class="badge green">Low</span>
+{% endif %}
+</td>
+
+<td>{{ d.last_seen }}</td>
+
+<td>
+{% if d.status == "Blocked" %}
+<form method="POST" action="/unblock/{{ d.mac }}" style="display:inline;">
+<button class="small-btn unblock">Unblock</button>
+</form>
+{% elif d.status == "Known" %}
+<form method="POST" action="/untrust/{{ d.mac }}" style="display:inline;">
+<button class="small-btn block">Gỡ</button>
+</form>
+<form method="POST" action="/block/{{ d.mac }}" style="display:inline;">
+<button class="small-btn block">Block</button>
+</form>
+{% else %}
+<form method="POST" action="/trust/{{ d.mac }}" style="display:inline;">
+<button class="small-btn trust">Trust</button>
+</form>
+<form method="POST" action="/block/{{ d.mac }}" style="display:inline;">
+<button class="small-btn block">Block</button>
+</form>
+{% endif %}
+</td>
+</tr>
+{% endfor %}
+</table>
+</div>
+
+<div class="log-box">
+<h3>Hoạt động gần đây</h3>
+{% for log in logs %}
+<div class="log-item">
+<b>{{ log.event_type }}</b><br>
+{{ log.description }}<br>
+<small>{{ log.event_time }}</small>
+</div>
+{% endfor %}
+</div>
+
+</div>
+
+<div class="map-box">
+<h3>🌐 Network Risk Map</h3>
+<p style="color:#6b7280;margin:6px 0 15px">Biểu đồ trực quan hóa risk score của từng thiết bị trong mạng LAN.</p>
+<canvas id="networkMap" height="120"></canvas>
+</div>
+
+<div class="ids-box">
+<h3>🛡️ IDS / SOC Simulation</h3>
+<div class="ids-grid">
+<div class="ids-card">
+<b>Rule 01 - Unknown Device</b>
+Thiết bị chưa xác thực sẽ bị cộng điểm rủi ro.
+</div>
+<div class="ids-card">
+<b>Rule 02 - Unknown Vendor</b>
+Vendor không xác định được xem là dấu hiệu cần kiểm tra.
+</div>
+<div class="ids-card">
+<b>Rule 03 - Blacklist</b>
+Thiết bị bị block sẽ được đánh dấu High Risk.
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<script>
+const chartCanvas = document.getElementById('chart1');
+if(chartCanvas){
+    new Chart(chartCanvas,{
+        type:'doughnut',
+        data:{
+            labels:['Known','Unknown','High Risk'],
+            datasets:[{
+                data:[{{ known|default(0) }}, {{ unknown|default(0) }}, {{ high|default(0) }}],
+                backgroundColor:['#22c55e','#ef4444','#f59e0b'],
+                borderWidth:1
+            }]
+        },
+        options:{responsive:false,cutout:'65%',plugins:{legend:{display:false}}}
+    });
+}
+
+const networkMap = document.getElementById('networkMap');
+if(networkMap){
+    new Chart(networkMap,{
+        type:'bar',
+        data:{
+            labels:[{% for d in devices %}"{{ d.ip }}",{% endfor %}],
+            datasets:[{
+                label:'Risk Score',
+                data:[{% for d in devices %}{{ d.risk_score }},{% endfor %}],
+                backgroundColor:'rgba(220,38,38,0.65)',
+                borderColor:'#dc2626',
+                borderWidth:1
+            }]
+        },
+        options:{
+            responsive:true,
+            scales:{
+                y:{beginAtZero:true,max:150}
+            },
+            plugins:{legend:{display:false}}
+        }
+    });
+}
+
+function showSecurityAlert(msg){
+    let box=document.createElement("div");
+    box.innerHTML="🚨 "+msg;
+    box.style.position="fixed";
+    box.style.top="25px";
+    box.style.right="25px";
+    box.style.background="linear-gradient(135deg,#dc2626,#991b1b)";
+    box.style.color="#fff";
+    box.style.padding="18px 24px";
+    box.style.borderRadius="14px";
+    box.style.boxShadow="0 10px 25px rgba(0,0,0,0.3)";
+    box.style.zIndex="9999";
+    box.style.fontWeight="bold";
+    document.body.appendChild(box);
+    setTimeout(()=>box.remove(),4000);
+}
+
+setInterval(()=>{
+fetch("/auto_scan",{method:"POST"})
+.then(()=>location.reload())
+.catch(err=>console.log("Auto scan error:",err));
+},60000);
+</script>
+
+</body>
+</html>

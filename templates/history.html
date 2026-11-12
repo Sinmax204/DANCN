@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Lịch sử quét</title>
+<style>
+body{font-family:Arial;background:#f3f6fb;padding:30px}
+a{display:inline-block;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;background:white}
+th{background:#081225;color:white;padding:14px}
+td{padding:14px;border:1px solid #eee}
+</style>
+</head>
+<body>
+<h1>Lịch sử quét</h1>
+<a href="/">Quay lại Dashboard</a>
+
+<table>
+<tr><th>Thời gian</th><th>Tổng</th><th>Known</th><th>Unknown</th><th>High Risk</th></tr>
+{% for r in rows %}
+<tr>
+<td>{{ r.scan_time }}</td>
+<td>{{ r.total_devices }}</td>
+<td>{{ r.known_devices }}</td>
+<td>{{ r.unknown_devices }}</td>
+<td>{{ r.high_risk_devices }}</td>
+</tr>
+{% endfor %}
+</table>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Thiết bị tin cậy</title>
+<style>
+body{font-family:Arial;background:#f3f6fb;padding:30px}
+a{display:inline-block;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;background:white}
+th{background:#081225;color:white;padding:14px}
+td{padding:14px;border:1px solid #eee}
+button{background:#dc2626;color:white;border:none;padding:8px 12px;border-radius:8px}
+</style>
+</head>
+<body>
+<h1>Thiết bị tin cậy</h1>
+<a href="/">Quay lại Dashboard</a>
+
+<table>
+<tr><th>MAC</th><th>Vendor</th><th>Ghi chú</th><th>Ngày thêm</th><th>Action</th></tr>
+{% for r in rows %}
+<tr>
+<td>{{ r.mac }}</td>
+<td>{{ r.vendor }}</td>
+<td>{{ r.note }}</td>
+<td>{{ r.created_at }}</td>
+<td>
+<form method="POST" action="/untrust/{{ r.mac }}">
+<button>Gỡ</button>
+</form>
+</td>
+</tr>
+{% endfor %}
+</table>
+</body>
+</html>
